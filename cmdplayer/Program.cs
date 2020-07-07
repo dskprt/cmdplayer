@@ -98,27 +98,35 @@ namespace cmdplayer {
                 PixelFormat = new SharpDX.Direct2D1.PixelFormat(SharpDX.DXGI.Format.B8G8R8A8_UNorm, AlphaMode.Ignore)
             };
 
-            var hwndRenderTargetProperties = new HwndRenderTargetProperties() {
-                Hwnd = GetConsoleWindow(),
-                PixelSize = new Size2(Console.WindowWidth * 8, Console.WindowHeight * 8),
-                PresentOptions = PresentOptions.Immediately,
-            };
+            var renderTarget = new DeviceContextRenderTarget(factory, renderTargetProperties);
 
-            var renderTarget = new WindowRenderTarget(factory, renderTargetProperties, hwndRenderTargetProperties);
+            //AppDomain.CurrentDomain.ProcessExit += (s, e) => { renderTarget.EndDraw(); };
 
-            AppDomain.CurrentDomain.ProcessExit += (s, e) => { renderTarget.EndDraw(); };
+            System.Drawing.Graphics g = System.Drawing.Graphics.FromHwnd(GetConsoleWindow());
+            renderTarget.BindDeviceContext(g.GetHdc(), new RawRectangle(0, 0, 192 * 8, 108 * 8));
 
-            //Graphics g = Graphics.FromHwnd(GetConsoleWindow());
-            renderTarget.BeginDraw();
+            //g.Transform = new System.Drawing.Drawing2D.Matrix();
 
-            PlayVideo(filename, renderTarget);
+            //PlayVideo(filename, renderTarget);
+            Random r = new Random();
+            RawRectangleF raw = new RawRectangleF(50, 50, 100, 100);
+            Brush b = new SolidColorBrush(renderTarget, new RawColor4(100, 100, 100, 255));
+
+            for (int i = 0; i < 1473; i++) {
+                //DrawChar('d', new SolidColorBrush(renderTarget, new RawColor4(r.Next(255), r.Next(255), r.Next(255), 255)), renderTarget);
+                renderTarget.BeginDraw();
+                renderTarget.DrawRectangle(raw, new SolidColorBrush(renderTarget, new RawColor4(r.Next(255), r.Next(255), r.Next(255), 255)));
+                renderTarget.EndDraw();
+            }
+
+            Console.ReadKey();
         }
 
         static SharpDX.DirectWrite.TextFormat f;
         //static System.Drawing.Point p = new System.Drawing.Point(0, 0);
         static RawRectangleF p = new RawRectangleF(0, 0, 8, 8);
 
-        static void DrawChar(char c, Brush brush, WindowRenderTarget g) {
+        static void DrawChar(char c, Brush brush, DeviceContextRenderTarget g) {
             //if((p.Y / 8) >= 108) {
             if((p.Top / 8) >= 108) {
                 //Debug.WriteLine(p.Y);
@@ -126,7 +134,10 @@ namespace cmdplayer {
                 //p.Y = 0;
                 p.Left = 0;
                 p.Top = 0;
-                g.DrawText(c.ToString(), f, p, brush);
+                g.BeginDraw();
+                //g.DrawText(c.ToString(), f, p, brush);
+                g.FillRectangle(p, brush);
+                g.EndDraw();
                 //g.DrawString(c.ToString(), f, brush, p);
             } else {
                 //if ((p.X / 8) > (192 - 1)) {
@@ -136,17 +147,23 @@ namespace cmdplayer {
                     p.Left = 0;
                     p.Top += 8;
                     //g.DrawString(c.ToString(), f, brush, p);
-                    g.DrawText(c.ToString(), f, p, brush);
+                    g.BeginDraw();
+                    //g.DrawText(c.ToString(), f, p, brush);
+                    g.FillRectangle(p, brush);
+                    g.EndDraw();
                 } else {
                     //g.DrawString(c.ToString(), f, brush, p);
-                    g.DrawText(c.ToString(), f, p, brush);
+                    g.BeginDraw();
+                    //g.DrawText(c.ToString(), f, p, brush);
+                    g.FillRectangle(p, brush);
+                    g.EndDraw();
                     //p.X += 8;
                     p.Left += 8;
                 }
             }
         }
 
-        static void PlayVideo(string filename, WindowRenderTarget g) {
+        static void PlayVideo(string filename, DeviceContextRenderTarget g) {
             using (var video = new VideoCapture(filename)) {
                 using (var img = new Mat()) {
                     while (video.Grab()) {
@@ -182,7 +199,7 @@ namespace cmdplayer {
             return destImage;
         }
 
-        private static void DrawAscii(System.Drawing.Bitmap image, WindowRenderTarget g) {
+        private static void DrawAscii(System.Drawing.Bitmap image, DeviceContextRenderTarget g) {
 
             Boolean toggle = false;
 
@@ -196,7 +213,7 @@ namespace cmdplayer {
 
                     System.Drawing.Color pixelColor = image.GetPixel(w, h);
 
-                    DrawChar('█', new SolidColorBrush(g, new RawColor4(pixelColor.R, pixelColor.G, pixelColor.B, pixelColor.A)), g);
+                    DrawChar('█', new SolidColorBrush(g, new RawColor4(59, 230, 93, 255)), g);
 
                     //Average out the RGB components to find the Gray Color
 
